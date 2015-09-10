@@ -1,3 +1,5 @@
+import sys
+
 import urllib.request
 from time import sleep
 
@@ -11,8 +13,9 @@ users = {}
 highest = 0
 
 class Entry(object):
-    def __init__(self, gameId):
+    def __init__(self, gameId, user):
         self.gameId = gameId
+        self.user = user
         self.gameName = ""
         self.comments = []
         self.commentsWritten = 0
@@ -78,7 +81,7 @@ def exploreGame(entryInfo):
         with usersLock:
             if(userId not in users):
                 idQueue.put(userId)
-                users[userId] = Entry(userId)
+                users[userId] = Entry(userId, user)
             if(gameId not in users[userId].commentedOn):
                 users[userId].commentsWritten += 1
                 users[userId].commentedOn.append(gameId)
@@ -90,22 +93,32 @@ def exploreWorker():
         exploreGame(entryInfo)
         entryQueue.task_done()
 
+
+
+
+
 entryQueue = Queue()
 idQueue = Queue()
 
-for i in range(8):
+for i in range(30):
     t = threading.Thread(target=fetchWorker)
     t.daemon = True
     t.start()
 
-for i in range(8):
+for i in range(30):
     t = threading.Thread(target=exploreWorker)
     t.daemon = True
     t.start()
 
 gameId = input("Enter a game id to start with: ")
-users[gameId] = Entry(gameId)
-idQueue.put(gameId)
+first = getExtracted(gameId);
+
+if(first == None):
+    print("No game with that id.");
+    sys.exit()
+
+users[gameId] = Entry(first.gameId, first.gameName)
+entryQueue.put(first)
 
 for i in range(10):
     entryQueue.join()
@@ -130,4 +143,6 @@ for i in range(20):
 print("----------------Top 100 users that comment: ----------------")
 for i in range(20):
     gameId, user = byCommentsWritten[i]
-    print(user.gameName + " (" + str(user.gameId) + "): " + str(user.commentsWritten))
+    print(user.user + " (" + str(user.gameId) + "): " + str(user.commentsWritten))
+
+print("Found " + str(len(byCommentsWritten)) + " games in total.")
