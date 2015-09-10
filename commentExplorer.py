@@ -8,16 +8,16 @@ printLock = threading.Lock()
 highestLock = threading.Lock()
 usersLock = threading.Lock()
 users = {}
-highest = 0;
+highest = 0
 
 class Entry(object):
     def __init__(self, gameId):
-        self.gameId = gameId;
-        self.gameName = "";
-        self.comments = [];
-        self.commentsWritten = 0;
+        self.gameId = gameId
+        self.gameName = ""
+        self.comments = []
+        self.commentsWritten = 0
         self.commentedOn = []
-        self.getting = False;
+        self.getting = False
 
 class EntryInfo(object):
     def __init__(self, gameName, gameId, comments):
@@ -26,7 +26,7 @@ class EntryInfo(object):
         self.gameName = gameName
 
 def extract(html):
-    html = html.replace("<br/>", "\n");
+    html = html.replace("<br/>", "\n")
     user = html.split("<a")[1].split(">")[1].split("<")[0]
     userId = html.split("<a href=")[1].split('">')[0].split("uid=")[1]
     comment = html.split("<p>")[1].split("</p>")[0]
@@ -37,11 +37,11 @@ def getExtracted(gameId):
     text = page.decode("utf-8")
     comments = (text.split("<div class = 'comment'>"))
     if (len(comments) == 1):
-        return None;
+        return None
 
-    comments.pop(0);
+    comments.pop(0)
     comments[-1] = comments[-1].split("<p>You must sign in to comment.</p>")[0]
-    gameName = text.split("<h2 style='font-size:28px'>")[1].split("</h2>")[0];
+    gameName = text.split("<h2 style='font-size:28px'>")[1].split("</h2>")[0]
     return EntryInfo(gameName, gameId, list(map(extract, comments)))
 
 def fetchWorker():
@@ -50,15 +50,15 @@ def fetchWorker():
     
         entryInfo = getExtracted(gameId)
         if (entryInfo != None):
-            entryQueue.put(entryInfo);
+            entryQueue.put(entryInfo)
         idQueue.task_done()
 
 def exploreGame(entryInfo):
     global highest
 
-    gameId = entryInfo.gameId;
-    comments = entryInfo.comments;
-    name = entryInfo.gameName;
+    gameId = entryInfo.gameId
+    comments = entryInfo.comments
+    name = entryInfo.gameName
 
     with usersLock:
         users[gameId].comments = comments
@@ -90,8 +90,8 @@ def exploreWorker():
         exploreGame(entryInfo)
         entryQueue.task_done()
 
-entryQueue = Queue();
-idQueue = Queue();
+entryQueue = Queue()
+idQueue = Queue()
 
 for i in range(8):
     t = threading.Thread(target=fetchWorker)
@@ -104,43 +104,30 @@ for i in range(8):
     t.start()
 
 gameId = input("Enter a game id to start with: ")
-users[gameId] = Entry(gameId);
+users[gameId] = Entry(gameId)
 idQueue.put(gameId)
 
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
-entryQueue.join();
-idQueue.join();
+for i in range(10):
+    entryQueue.join()
+    idQueue.join()
 
 def getCommentsWritten(x):
     (_, user) = x
-    return user.commentsWritten;
+    return user.commentsWritten
 def getCommentsGot(x):
     (_, user) = x
-    return len(user.comments);
+    return len(user.comments)
 
-byCommentsWritten = sorted(list(users.items()), key = getCommentsWritten, reverse=True);
-byCommentsGot = sorted(list(users.items()), key = getCommentsGot, reverse=True);
+byCommentsWritten = sorted(list(users.items()), key = getCommentsWritten, reverse=True)
+byCommentsGot = sorted(list(users.items()), key = getCommentsGot, reverse=True)
 
-print("----------------Top 100 commented games: ----------------");
+print("----------------Top 100 commented games: ----------------")
 for i in range(20):
-    gameId, user = byCommentsGot[i];
+    gameId, user = byCommentsGot[i]
     print(user.gameName + " (" + str(user.gameId) + "): " + str(len(user.comments)))
 
 
-print("----------------Top 100 users that comment: ----------------");
+print("----------------Top 100 users that comment: ----------------")
 for i in range(20):
-    gameId, user = byCommentsWritten[i];
+    gameId, user = byCommentsWritten[i]
     print(user.gameName + " (" + str(user.gameId) + "): " + str(user.commentsWritten))
