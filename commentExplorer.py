@@ -1,7 +1,5 @@
 import urllib.request
 from time import sleep
-from GUI import Application
-from GUI.Alerts import alert
 
 import threading
 from queue import Queue
@@ -35,7 +33,7 @@ def extract(html):
     return user, userId, comment
 
 def getExtracted(gameId):
-    page = urllib.request.urlopen("http://ludumdare.com/compo/ludum-dare-20/?action=preview&uid=" + gameId).read()
+    page = urllib.request.urlopen("http://ludumdare.com/compo/ludum-dare-33/?action=preview&uid=" + gameId).read()
     text = page.decode("utf-8")
     comments = (text.split("<div class = 'comment'>"))
     if (len(comments) == 1):
@@ -80,7 +78,7 @@ def exploreGame(entryInfo):
         with usersLock:
             if(userId not in users):
                 idQueue.put(userId)
-                users[userId] = Entry(gameId)
+                users[userId] = Entry(userId)
             if(gameId not in users[userId].commentedOn):
                 users[userId].commentsWritten += 1
                 users[userId].commentedOn.append(gameId)
@@ -97,10 +95,12 @@ idQueue = Queue();
 
 for i in range(8):
     t = threading.Thread(target=fetchWorker)
+    t.daemon = True
     t.start()
 
 for i in range(8):
     t = threading.Thread(target=exploreWorker)
+    t.daemon = True
     t.start()
 
 gameId = input("Enter a game id to start with: ")
@@ -134,13 +134,13 @@ def getCommentsGot(x):
 byCommentsWritten = sorted(list(users.items()), key = getCommentsWritten, reverse=True);
 byCommentsGot = sorted(list(users.items()), key = getCommentsGot, reverse=True);
 
-print("Top 100 commented games: ");
-for i in range(10):
+print("----------------Top 100 commented games: ----------------");
+for i in range(20):
     gameId, user = byCommentsGot[i];
     print(user.gameName + " (" + str(user.gameId) + "): " + str(len(user.comments)))
 
 
-print("Top 100 users that comment: ");
-for i in range(10):
+print("----------------Top 100 users that comment: ----------------");
+for i in range(20):
     gameId, user = byCommentsWritten[i];
     print(user.gameName + " (" + str(user.gameId) + "): " + str(user.commentsWritten))
